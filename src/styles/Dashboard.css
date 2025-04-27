@@ -1,0 +1,33 @@
+.dashboard-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #eef1f7;
+}
+
+.dashboard-content {
+  background: white;
+  padding: 2rem 3rem;
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.dashboard-content h1 {
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-content p {
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.dashboard-content button {
+  background: #dc3545;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}

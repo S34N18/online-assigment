@@ -1,0 +1,36 @@
+.submit-page {
+  padding: 2rem;
+  background-color: #f4f6f9;
+  min-height: 100vh;
+}
+
+.submit-page h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.submit-card {
+  background: white;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.submit-card h3 {
+  margin-bottom: 1rem;
+}
+
+.submit-card input {
+  margin-bottom: 0.5rem;
+}
+
+.submit-card button {
+  display: block;
+  padding: 0.5rem 1rem;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}

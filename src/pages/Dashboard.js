@@ -1,8 +1,9 @@
 // Import necessary modules
 import React, { useContext } from 'react';
-import '../styles/Dashboard.css';            // Import dashboard-specific CSS
+import './styles/Dashboard.css';            // Import dashboard-specific CSS
 import { AuthContext } from '../context/AuthContext'; // Import authentication context
 import { useNavigate } from 'react-router-dom';       // For redirecting after logout
+import ClassroomList from './class/ClassroomList';
 
 // ✅ Dashboard Component
 const Dashboard = () => {
@@ -18,15 +19,19 @@ const Dashboard = () => {
   return (
     <div className="dashboard-page">
       <div className="dashboard-content">
-        {/* Welcome Message */}
-        <h1>Welcome, {user?.name}!</h1>
+  <h1>Welcome, {user?.name}!</h1>
+  <p>You are logged in as a <strong>{user?.role}</strong>.</p>
 
-        {/* Show user role (student or lecturer) */}
-        <p>You are logged in as a <strong>{user?.role}</strong>.</p>
+  {/* Lecturer-specific content */}
+  {user?.role === 'lecturer' && (
+    <div style={{ marginTop: '20px' }}>
+      <h2>Your Classrooms</h2>
+      <ClassroomList token={user.token} />
+    </div>
+  )}
 
-        {/* Logout Button */}
-        <button onClick={handleLogout}>Logout</button>
-      </div>
+  <button onClick={handleLogout}>Logout</button>
+</div>
     </div>
   );
 };

@@ -2,7 +2,7 @@
 import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import '../styles/AssignmentCreate.css';  // Import CSS for styling
-import { AuthContext } from '../context/AuthContext';  // Import Authentication context
+import { AuthContext } from '../../context/AuthContext';  // Import Authentication context
 
 // ✅ Assignment Create Component
 const AssignmentCreate = () => {

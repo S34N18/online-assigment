@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import "../styles/AssignmentList.css";
-import { AuthContext } from "../context/AuthContext";
+import { AuthContext } from "../../context/AuthContext";
 
 const AssignmentList = () => {
   const { user, token } = useContext(AuthContext);

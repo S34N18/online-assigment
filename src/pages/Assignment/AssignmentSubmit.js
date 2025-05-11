@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
 import '../styles/AssignmentSubmit.css'; // Import CSS
-import { AuthContext } from '../context/AuthContext'; // Auth context
+import { AuthContext } from '../../context/AuthContext'; // Auth context
 
 // ✅ Assignment Submit Component
 const AssignmentSubmit = () => {

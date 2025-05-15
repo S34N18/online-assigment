@@ -1,6 +1,8 @@
 import React, { useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+
+
 import '../pages/styles/Sidebar.css';
 
 const Sidebar = () => {
@@ -28,6 +30,7 @@ const Sidebar = () => {
           <NavLink to="/create-assignment" activeclassname="active">Create Assignment</NavLink>
           <NavLink to="/users" activeclassname="active">Users</NavLink>
           <NavLink to="/submissions" activeclassname="active">Submissions</NavLink>
+          <NavLink to="/classrooms" activeclassname="active">Classrooms</NavLink> 
         </>
       )}
 
@@ -37,3 +40,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+ 

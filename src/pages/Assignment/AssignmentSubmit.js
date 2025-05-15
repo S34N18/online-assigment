@@ -1,86 +1,131 @@
-// Import necessary modules
 import React, { useEffect, useState, useContext } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import '../styles/AssignmentSubmit.css'; // Import CSS
-import { AuthContext } from '../../context/AuthContext'; // Auth context
+import '../styles/AssignmentSubmit.css';
+import { AuthContext } from '../../context/AuthContext';
 
-// ✅ Assignment Submit Component
 const AssignmentSubmit = () => {
-  const { user, token } = useContext(AuthContext); // Get current user and token
-  const [assignments, setAssignments] = useState([]); // Store assignments list
-  const [files, setFiles] = useState({}); // Store selected files for each assignment
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user, token } = useContext(AuthContext);
 
-  // ✅ Fetch assignments on page load
+  const [assignment, setAssignment] = useState(null);
+  const [files, setFiles] = useState([]); // ✅ Store multiple files
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  // ✅ Fetch assignment details
   useEffect(() => {
-    const fetchAssignments = async () => {
+    const fetchAssignment = async () => {
       try {
-        const res = await axios.get('http://localhost:4000/api/assignments', {
-          headers: { Authorization: `Bearer ${token}` } // Pass token for protected route
+        const res = await axios.get(`/api/assignments/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-        setAssignments(res.data.data); // Save assignments
+        setAssignment(res.data);
       } catch (err) {
-        console.error('Error loading assignments:', err);
+        console.error('Error loading assignment:', err);
+        setError('Failed to load assignment details');
+      } finally {
+        setLoading(false);
       }
     };
-    fetchAssignments();
-  }, [token]);
+    fetchAssignment();
+  }, [id, token]);
 
-  // ✅ Handle file input change
-  const handleFileChange = (e, assignmentId) => {
-    setFiles({ ...files, [assignmentId]: e.target.files[0] }); // Track selected file per assignment
+  // ✅ Handle file input (multiple)
+  const handleFileChange = (e) => {
+    setFiles([...e.target.files]); // Convert FileList to array
   };
 
-  // ✅ Handle assignment file submission
-  const handleSubmit = async (assignmentId) => {
-    if (!files[assignmentId]) return alert('Please choose a file');
+  // ✅ Submit handler
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (files.length === 0) {
+      alert('Please select at least one file to submit');
+      return;
+    }
 
     const formData = new FormData();
-    formData.append('assignmentId', assignmentId);
-    formData.append('file', files[assignmentId]);
+    formData.append('assignment', id); // ✅ match backend's expected field
+
+    // ✅ Append each file with the key 'files'
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
 
     try {
-      await axios.post('http://localhost:4000/api/submissions', formData, {
+      await axios.post('/api/submissions', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       });
-      alert('Submission successful!');
+
+      setSuccessMsg('Assignment submitted successfully!');
+      setFiles([]);
+
+      // Navigate after success
+      setTimeout(() => {
+        if (assignment.classroomId) {
+          navigate(`/classrooms/${assignment.classroomId}`);
+        } else {
+          navigate('/assignments');
+        }
+      }, 2000);
     } catch (err) {
       console.error('Submission error:', err);
-      alert('Submission failed.');
+      setError('Failed to submit assignment');
     }
   };
 
+  if (loading) return <div className="loading">Loading assignment details...</div>;
+  if (error) return <div className="error">{error}</div>;
+  if (!assignment) return <div className="error">Assignment not found</div>;
+
   return (
     <div className="submit-page">
-      <h2>Submit Assignments</h2>
+      <h2>Submit Assignment</h2>
 
-      {/* List all assignments */}
-      {assignments.map((assignment) => (
-        <div key={assignment._id} className="submit-card">
-          <h3>{assignment.title}</h3>
+      <div className="assignment-details">
+        <h3>{assignment.title}</h3>
+        <p>{assignment.description}</p>
+        <p><strong>Deadline:</strong> {new Date(assignment.deadline).toLocaleDateString()}</p>
 
-          {/* File input */}
-          <input
+        {/* Optional assignment materials */}
+        {assignment.attachments && assignment.attachments.length > 0 && (
+          <div className="assignment-attachment">
+            <p><strong>Assignment Files:</strong></p>
+            <a 
+              href={`/api/files/${assignment.attachments[0].path}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              Download Assignment Materials
+            </a>
+          </div>
+        )}
+      </div>
+
+      <form className="submission-form" onSubmit={handleSubmit}>
+        {successMsg && <p className="success-message">{successMsg}</p>}
+
+        <div className="file-input-container">
+          <label htmlFor="submission-file">Upload your work (max 5 files):</label>
+          <input 
             type="file"
-            onChange={(e) => handleFileChange(e, assignment._id)}
+            id="submission-file"
+            onChange={handleFileChange}
+            multiple // ✅ allow multiple file selection
+            required
           />
-
-          {/* Submit button */}
-          <button onClick={() => handleSubmit(assignment._id)}>Submit</button>
         </div>
-      ))}
+
+        <button type="submit" className="submit-button">Submit Assignment</button>
+      </form>
     </div>
   );
 };
 
 export default AssignmentSubmit;
-
-
-// ✅ "Students see a list of available assignments."
-// ✅ "They can upload a file and submit it directly for each assignment."
-// ✅ "We use FormData to upload files because it's multipart data."
-// ✅ "We protect submission routes with tokens to ensure only logged-in students can submit."
-
-// ✅ Very professional and simple to explain!

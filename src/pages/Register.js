@@ -34,7 +34,7 @@ const Register = () => {
     e.preventDefault(); // Prevent form from reloading the page
     try {
       // Send registration data to backend
-      await axios.post('http://localhost:4000/api/users', formData, {
+      await axios.post('http://localhost:5000/api/users', formData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`  // Only lecturers can register new users
         }

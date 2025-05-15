@@ -76,3 +76,13 @@ const ClassroomStudentManager = ({ classroomId, token }) => {
 };
 
 export default ClassroomStudentManager;
+
+
+
+// ✔️ Fetches students for a specific classroom.
+
+// ✔️ Allows checkbox selection of students.
+
+// ✔️ Handles removal with PUT request.
+
+// ✔️ UI is clean and functional.

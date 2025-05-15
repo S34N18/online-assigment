@@ -1,31 +1,55 @@
+// Updated SubmissionList.js to handle both specific and general routes
 import React, { useEffect, useState, useContext } from "react";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 import "./styles/SubmissionList.css";
 import { AuthContext } from "../context/AuthContext";
 
 const SubmissionList = () => {
-  const { token } = useContext(AuthContext); // get auth token from context
-  const [submissions, setSubmissions] = useState([]); // initialize as empty array to avoid length error
+  const { token, user } = useContext(AuthContext);
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { assignmentId } = useParams(); // This will be undefined for the general /submissions route
 
-  // fetch submissions from backend on mount
   useEffect(() => {
     const fetchSubmissions = async () => {
+      setLoading(true);
       try {
-        const res = await axios.get("http://localhost:4000/api/submissions", {
+        let url = "http://localhost:5000/api/submissions";
+        
+        // If we have an assignmentId parameter, use it to filter submissions
+        if (assignmentId) {
+          url = `http://localhost:5000/api/submissions?assignment=${assignmentId}`;
+        }
+        
+        const res = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setSubmissions(res.data.data); // store retrieved data
+        
+        setSubmissions(res.data);
+        setError(null);
       } catch (err) {
         console.error("Failed to fetch submissions:", err);
+        setError("Failed to load submissions. Please try again later.");
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchSubmissions();
-  }, [token]);
+  }, [token, assignmentId]);
+
+  const downloadFile = (filename) => {
+    window.open(`http://localhost:5000/api/submissions/download/${filename}`, '_blank');
+  };
+
+  if (loading) return <div className="loading">Loading submissions...</div>;
+  if (error) return <div className="error">{error}</div>;
 
   return (
     <div className="submission-page">
-      <h2>Student Submissions</h2>
+      <h2>{assignmentId ? "Assignment Submissions" : "All Submissions"}</h2>
 
       {submissions.length === 0 ? (
         <p>No submissions found.</p>
@@ -36,7 +60,9 @@ const SubmissionList = () => {
               <th>Student</th>
               <th>Assignment</th>
               <th>Date Submitted</th>
+              <th>Status</th>
               <th>File(s)</th>
+              {user.role === "lecturer" && <th>Grade</th>}
             </tr>
           </thead>
           <tbody>
@@ -45,21 +71,26 @@ const SubmissionList = () => {
                 <td>{s.student?.name || "Unknown Student"}</td>
                 <td>{s.assignment?.title || "Untitled Assignment"}</td>
                 <td>{new Date(s.submittedAt).toLocaleString()}</td>
+                <td>{s.isLate ? "Late" : "On Time"}</td>
                 <td>
                   {Array.isArray(s.files) && s.files.length > 0
                     ? s.files.map((file, idx) => (
                         <div key={idx}>
-                          <a
-                            href={`http://localhost:4000/${file.path}`}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button 
+                            className="download-btn"
+                            onClick={() => downloadFile(file.filename)}
                           >
-                            {file.filename || `File ${idx + 1}`}
-                          </a>
+                            Download {file.filename || `File ${idx + 1}`}
+                          </button>
                         </div>
                       ))
                     : "No files"}
                 </td>
+                {user.role === "lecturer" && (
+                  <td>
+                    {s.grade !== undefined ? `${s.grade}/100` : "Not graded"}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

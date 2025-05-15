@@ -4,7 +4,7 @@ import './styles/Login.css';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
-// ✅ Login Page Component
+// Login Page Component
 const Login = () => {
   const navigate = useNavigate(); // Used to programmatically navigate to other pages
   const { login } = useContext(AuthContext); // Accessing login function from Auth Context
@@ -14,13 +14,13 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // ✅ Handle Form Submission
+  //  Handle Form Submission
   const handleSubmit = async (e) => {
     e.preventDefault(); // Prevent page reload when submitting
 
     try {
       // Make POST request to login API
-      const res = await axios.post('http://localhost:4000/api/auth/login', {
+      const res = await axios.post('http://localhost:5000/api/auth/login', {
         email,
         password
       });

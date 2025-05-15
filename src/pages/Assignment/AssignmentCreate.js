@@ -1,12 +1,16 @@
 // Import necessary modules
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/AssignmentCreate.css';  // Import CSS for styling
 import { AuthContext } from '../../context/AuthContext';  // Import Authentication context
 
 // ✅ Assignment Create Component
 const AssignmentCreate = () => {
+  const { classroomId } = useParams(); // Get classroom ID from URL
+  const navigate = useNavigate();
   const { token } = useContext(AuthContext); // Get the token from Auth Context
+  const [classroom, setClassroom] = useState(null);
 
   // State to manage form input fields
   const [form, setForm] = useState({
@@ -20,6 +24,24 @@ const AssignmentCreate = () => {
 
   // State to show success message
   const [successMsg, setSuccessMsg] = useState('');
+  
+  // Fetch classroom details
+  useEffect(() => {
+    const fetchClassroom = async () => {
+      try {
+        const res = await axios.get(`/api/classrooms/${classroomId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setClassroom(res.data);
+      } catch (err) {
+        console.error('Failed to fetch classroom:', err);
+      }
+    };
+
+    if (classroomId) {
+      fetchClassroom();
+    }
+  }, [classroomId, token]);
 
   // ✅ Handle changes in input fields
   const handleChange = (e) => {
@@ -31,38 +53,56 @@ const AssignmentCreate = () => {
     setFile(e.target.files[0]); // Store only the first file selected
   };
 
-  // ✅ Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent page reload on form submit
+// ✅ Handle form submission
+const handleSubmit = async (e) => {
+  e.preventDefault(); // Prevent page reload on form submit
 
-    // Prepare data to send
-    const formData = new FormData();
-    formData.append('title', form.title);
-    formData.append('description', form.description);
-    formData.append('deadline', form.deadline);
-    if (file) formData.append('file', file); // Attach file if selected
+  // Prepare data to send
+  const formData = new FormData();
+  formData.append('title', form.title);
+  formData.append('description', form.description);
+  formData.append('deadline', form.deadline); // Backend will map this to dueDate
+  formData.append('classroomId', classroomId); // Classroom association
+  if (file) formData.append('file', file); // Now matches the upload configuration
 
-    try {
-      // Send POST request to backend to create assignment
-      await axios.post('http://localhost:4000/api/assignments', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,  // Send token for authentication
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+  try {
+    // Send POST request to backend to create assignment
+    const response = await axios.post('/api/assignments', formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,  // Send token for authentication
+        'Content-Type': 'multipart/form-data'
+      }
+    });
 
-      // Clear the form after success
-      setForm({ title: '', description: '', deadline: '' });
-      setFile(null);
-      setSuccessMsg('Assignment created successfully!');
-    } catch (err) {
-      console.error(err);
-      alert('Failed to create assignment'); // Alert user on failure
-    }
-  };
+    console.log('Assignment created:', response.data);
+
+    // Clear the form after success
+    setForm({ title: '', description: '', deadline: '' });
+    setFile(null);
+    setSuccessMsg('Assignment created successfully!');
+    
+    // Navigate back to classroom details after 2 seconds
+    setTimeout(() => {
+      navigate(`/classrooms/${classroomId}`);
+    }, 2000);
+  } catch (err) {
+    console.error('Error creating assignment:', err.response?.data || err.message);
+    alert('Failed to create assignment: ' + (err.response?.data?.message || err.message));
+  }
+};
+
+
+
+
 
   return (
     <div className="create-assignment-page">
+      {classroom && (
+        <div className="classroom-header">
+          <h3>Creating assignment for: {classroom.name}</h3>
+        </div>
+      )}
+      
       <form className="assignment-form" onSubmit={handleSubmit}>
         <h2>Create Assignment</h2>
 
@@ -108,12 +148,3 @@ const AssignmentCreate = () => {
 };
 
 export default AssignmentCreate;
-
-
-
-// ✅ "This page allows lecturers to create a new assignment by filling in a form."
-// ✅ "We handle form data and file uploads using FormData object and send it using Axios."
-// ✅ "Only authenticated users with a valid token can create assignments."
-// ✅ "On successful creation, the form clears and a success message appears."
-
-// "I used consistent spacing, rounded corners, and light colors to create a clean and user-friendly UI. Focus effects on inputs improve interactivity. Success messages are styled softly to keep a positive user experience."

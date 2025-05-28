@@ -3,6 +3,7 @@ import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import AddClassroomForm from './AddClassRoomForm';
+import '../styles/ClassroomList.css';
 
 const ClassroomList = () => {
   const { user } = useContext(AuthContext);
@@ -16,31 +17,65 @@ const ClassroomList = () => {
   const fetchClassrooms = async () => {
     setLoading(true);
     setError('');
+    
+    // Add debug logging
+    console.log('Fetching classrooms for user:', user);
+    console.log('Token exists:', !!token);
+    
     try {
-      const response = await axios.get('/api/classrooms', {
+      const response = await axios.get('http://localhost:5000/api/classrooms', {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      setClassrooms(response.data);
+      
+      console.log('Full API response:', response.data);
+      
+      // Fix: Access the nested data array
+      if (response.data.success && response.data.data) {
+        setClassrooms(response.data.data);
+      } else {
+        // Handle case where response structure is different
+        setClassrooms(Array.isArray(response.data) ? response.data : []);
+      }
+      
     } catch (err) {
-      // More detailed error handling
-      const errorMsg = err.response?.data?.message || 'Failed to fetch classrooms';
-      setError(errorMsg);
-      console.error('Classroom fetch error:', err.response?.data || err.message);
+      // Enhanced error logging
+      console.error('Full error object:', err);
+      console.error('Error response:', err.response);
+      console.error('Error message:', err.message);
+      console.error('Error status:', err.response?.status);
+      console.error('Error data:', err.response?.data);
+      
+      const errorMsg = err.response?.data?.message || 
+                      err.response?.statusText || 
+                      err.message || 
+                      'Failed to fetch classrooms';
+      setError(`Error: ${errorMsg} (Status: ${err.response?.status || 'Unknown'})`);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user?.role === 'lecturer' || user?.role === 'admin') {
-      fetchClassrooms();
-    } else {
-      setLoading(false); // skip fetching for other roles
+    // Check if user and token exist before making request
+    if (!user) {
+      console.log('No user found, skipping classroom fetch');
+      setLoading(false);
+      return;
     }
-  }, [user]);
+    
+    if (!token) {
+      console.log('No token found, skipping classroom fetch');
+      setError('Authentication token not found. Please log in again.');
+      setLoading(false);
+      return;
+    }
+
+    // Allow all authenticated users to fetch their classrooms
+    fetchClassrooms();
+  }, [user, token]);
 
   // Enhanced error and loading states
   if (loading) return <div className="loading">Loading classrooms...</div>;
@@ -54,12 +89,18 @@ const ClassroomList = () => {
         </div>
       )}
 
-      <h3>{user?.role === 'lecturer' ? 'Your Classrooms' : 'All Classrooms'}</h3>
+      <h3>
+        {user?.role === 'lecturer' ? 'Your Classrooms' : 
+         user?.role === 'student' ? 'Your Enrolled Classrooms' : 
+         'All Classrooms'}
+      </h3>
 
       {classrooms.length === 0 ? (
         <p className="no-classrooms">
           {user?.role === 'lecturer' 
             ? 'You have not created any classrooms yet.' 
+            : user?.role === 'student'
+            ? 'You are not enrolled in any classrooms yet.'
             : 'No classrooms are available.'}
         </p>
       ) : (
@@ -85,16 +126,14 @@ const ClassroomList = () => {
                 </div>
               )}
 
-              {user?.role === 'lecturer' && (
-                <div className="classroom-actions">
-                  <Link 
-                    to={`/classrooms/${classroom._id}`} 
-                    className="view-classroom-link"
-                  >
-                    View Classroom Details
-                  </Link>
-                </div>
-              )}
+              <div className="classroom-actions">
+                <Link 
+                  to={`/classrooms/${classroom._id}`} 
+                  className="view-classroom-link"
+                >
+                  View Classroom Details
+                </Link>
+              </div>
             </div>
           ))}
         </div>

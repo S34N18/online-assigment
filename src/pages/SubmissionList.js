@@ -40,12 +40,32 @@ const SubmissionList = () => {
     fetchSubmissions();
   }, [token, assignmentId]);
 
-  const downloadFile = (filename) => {
-    window.open(`http://localhost:5000/api/submissions/download/${filename}`, '_blank');
-  };
+const downloadFile = async (filename) => {
+  try {
+    const response = await axios.get(
+      `http://localhost:5000/api/submissions/download/${filename}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        responseType: 'blob', // Important: treats it as a file, not JSON
+      }
+    );
 
-  if (loading) return <div className="loading">Loading submissions...</div>;
-  if (error) return <div className="error">{error}</div>;
+    // Create a blob URL and simulate download
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename); // Name the downloaded file
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    console.error('File download error:', err.response?.data || err.message);
+    alert('Failed to download the file. Please try again.');
+  }
+};
+
 
   return (
     <div className="submission-page">

@@ -17,6 +17,7 @@ const AssignmentDetails = () => {
         const res = await axios.get(`/api/assignments/${assignmentId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        console.log('Assignment data received:', res.data); // Debug: Log full response
         setAssignment(res.data.data);
         setLoading(false);
       } catch (err) {
@@ -54,10 +55,10 @@ const AssignmentDetails = () => {
       
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-        if (filenameMatch.length === 2) {
+        if (filenameMatch && filenameMatch.length === 2) {
           filename = filenameMatch[1];
         }
-      } else if (assignment.attachments[fileIndex]) {
+      } else if (assignment.attachments && assignment.attachments[fileIndex]) {
         // Fallback to using the filename from the assignment data
         filename = assignment.attachments[fileIndex].filename;
       }
@@ -80,6 +81,11 @@ const AssignmentDetails = () => {
   if (loading) return <div className="loading">Loading...</div>;
   if (error) return <div className="error">{error}</div>;
   if (!assignment) return <div className="not-found">Assignment not found</div>;
+
+  // Debug: Log assignment object with attachments info
+  console.log('Assignment object:', assignment);
+  console.log('Has attachments?', !!assignment.attachments);
+  console.log('Attachments array:', assignment.attachments);
 
   // Format date
   const formatDate = (dateString) => {
@@ -104,7 +110,13 @@ const AssignmentDetails = () => {
         <p>{assignment.description}</p>
       </div>
 
-      {assignment.attachments && assignment.attachments.length > 0 && (
+      {/* Debug message about attachments */}
+      <div style={{color: 'blue', border: '1px solid #ccc', padding: '10px', margin: '10px 0'}}>
+        Debug: Attachments data: {JSON.stringify(assignment.attachments)}
+      </div>
+
+      {/* Check if attachments exist and have length */}
+      {assignment.attachments && assignment.attachments.length > 0 ? (
         <div className="assignment-files">
           <h3>Assignment Files</h3>
           <ul className="file-list">
@@ -125,6 +137,10 @@ const AssignmentDetails = () => {
               </li>
             ))}
           </ul>
+        </div>
+      ) : (
+        <div className="no-attachments">
+          <p>This assignment has no attached files.</p>
         </div>
       )}
 
@@ -154,6 +170,3 @@ const AssignmentDetails = () => {
 };
 
 export default AssignmentDetails;
-
-
-

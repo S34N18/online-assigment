@@ -1,88 +1,235 @@
-// Importing necessary modules
 import React, { useState } from 'react';
 import axios from 'axios';
 import './styles/Register.css';
 import { useNavigate } from 'react-router-dom';
 
-// ✅ Register Component
+// Register Component
 const Register = () => {
-  const navigate = useNavigate(); // Used for page redirection after successful registration
+  const navigate = useNavigate();
 
   // State to manage form inputs
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'student',    // Default role is student
-    studentId: ''        // Only required for students
+    confirmPassword: '',
+    role: 'student',
+    studentId: '',
+    phoneNumber: ''
   });
 
-  // State to hold any error message
+  // State for messages and loading
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ Handle input changes and update the formData state
+  // Handle input changes and update the formData state
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+    
+    // Clear messages when user starts typing
+    if (errorMsg || successMsg) {
+      setErrorMsg('');
+      setSuccessMsg('');
+    }
   };
 
-  // ✅ Handle form submission
+  // Validate form data
+  const validateForm = () => {
+    const { name, email, password, confirmPassword, role, studentId, phoneNumber } = formData;
+
+    // Basic validation
+    if (!name.trim()) {
+      setErrorMsg('Please enter your full name');
+      return false;
+    }
+
+    if (name.trim().length > 50) {
+      setErrorMsg('Name cannot be more than 50 characters');
+      return false;
+    }
+
+    if (!email.trim()) {
+      setErrorMsg('Please enter your email');
+      return false;
+    }
+
+    // Email validation
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(email)) {
+      setErrorMsg('Please enter a valid email address');
+      return false;
+    }
+
+    if (!password) {
+      setErrorMsg('Please enter a password');
+      return false;
+    }
+
+    if (password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters');
+      return false;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMsg('Passwords do not match');
+      return false;
+    }
+
+    // Student ID validation for students
+    if (role === 'student' && !studentId.trim()) {
+      setErrorMsg('Student ID is required for student accounts');
+      return false;
+    }
+
+    // Phone number validation (if provided)
+    if (phoneNumber && phoneNumber.trim()) {
+      const phoneRegex = /^\+?[\d\s\-\(\)]+$/;
+      if (!phoneRegex.test(phoneNumber.trim())) {
+        setErrorMsg('Please enter a valid phone number');
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Handle form submission
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent form from reloading the page
+    e.preventDefault();
+    
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
     try {
+      // Prepare data for API call
+      const registrationData = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        role: formData.role
+      };
+
+      // Add studentId only for students
+      if (formData.role === 'student' && formData.studentId.trim()) {
+        registrationData.studentId = formData.studentId.trim();
+      }
+
+      // Add phone number if provided
+      if (formData.phoneNumber && formData.phoneNumber.trim()) {
+        registrationData.phoneNumber = formData.phoneNumber.trim();
+      }
+
       // Send registration data to backend
-      await axios.post('http://localhost:5000/api/users', formData, {
+      const response = await axios.post('http://localhost:5000/api/users', registrationData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`  // Only lecturers can register new users
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
         }
       });
 
-      // Redirect to login page after successful registration
-      navigate('/');
+      // Show success message
+      setSuccessMsg(`${formData.role === 'student' ? 'Student' : 'Lecturer'} registered successfully!`);
+      
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        role: 'student',
+        studentId: '',
+        phoneNumber: ''
+      });
+
+      // Redirect to users list or dashboard after a delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+
     } catch (error) {
-      // Show error message if registration fails
-      setErrorMsg(error.response?.data?.message || 'Registration failed');
+      // Handle different types of errors
+      if (error.response?.status === 401) {
+        setErrorMsg('Unauthorized. Please login as a lecturer to register users.');
+      } else if (error.response?.status === 403) {
+        setErrorMsg('Access denied. Only lecturers can register new users.');
+      } else {
+        setErrorMsg(error.response?.data?.message || 'Registration failed. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  // Handle cancel/back action
+  const handleCancel = () => {
+    navigate('/dashboard');
   };
 
   return (
     <div className="register-page">
       <form onSubmit={handleSubmit} className="register-form">
-        <h2>Register</h2>
+        <h2>Register New {formData.role === 'student' ? 'Student' : 'User'}</h2>
 
-        {/* Display error message if any */}
+        {/* Display messages */}
         {errorMsg && <p className="error">{errorMsg}</p>}
+        {successMsg && <p className="success">{successMsg}</p>}
 
         {/* Full Name Input */}
         <input
           name="name"
-          placeholder="Full Name"
+          type="text"
+          placeholder="Full Name *"
           value={formData.name}
           onChange={handleChange}
           required
+          disabled={isLoading}
+          maxLength={50}
         />
 
         {/* Email Input */}
         <input
           name="email"
           type="email"
-          placeholder="Email"
+          placeholder="Email Address *"
           value={formData.email}
           onChange={handleChange}
           required
+          disabled={isLoading}
         />
 
         {/* Password Input */}
         <input
           name="password"
           type="password"
-          placeholder="Password"
+          placeholder="Password (min 6 characters) *"
           value={formData.password}
           onChange={handleChange}
           required
+          disabled={isLoading}
+          minLength={6}
+        />
+
+        {/* Confirm Password Input */}
+        <input
+          name="confirmPassword"
+          type="password"
+          placeholder="Confirm Password *"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+          required
+          disabled={isLoading}
+          minLength={6}
         />
 
         {/* Role Dropdown */}
@@ -90,38 +237,56 @@ const Register = () => {
           name="role"
           value={formData.role}
           onChange={handleChange}
+          disabled={isLoading}
         >
           <option value="student">Student</option>
           <option value="lecturer">Lecturer</option>
         </select>
 
-        {/* Show Student ID input only if "Student" role is selected */}
+        {/* Student ID input - only show for students */}
         {formData.role === 'student' && (
           <input
             name="studentId"
-            placeholder="Student ID"
+            type="text"
+            placeholder="Student ID *"
             value={formData.studentId}
             onChange={handleChange}
             required
+            disabled={isLoading}
           />
         )}
 
-        {/* Submit Button */}
-        <button type="submit">Register</button>
+        {/* Phone Number Input (Optional) */}
+        <input
+          name="phoneNumber"
+          type="tel"
+          placeholder="Phone Number (optional)"
+          value={formData.phoneNumber}
+          onChange={handleChange}
+          disabled={isLoading}
+        />
+
+        {/* Action Buttons */}
+        <div className="button-group">
+          <button type="submit" disabled={isLoading} className="primary-button">
+            {isLoading ? 'Registering...' : `Register ${formData.role === 'student' ? 'Student' : 'User'}`}
+          </button>
+          
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={isLoading}
+            className="secondary-button"
+          >
+            Cancel
+          </button>
+        </div>
+
+        {/* Required fields note */}
+        <p className="required-note">* Required fields</p>
       </form>
     </div>
   );
 };
 
 export default Register;
-
-
-
-//  "This page allows a lecturer to register new students or lecturers."
-//  "We store the form data inside the component using React's useState hook."
-//  "When the form is submitted, we send the data to the backend with Axios."
-//  "After registration, the user is redirected back to the login page."
-//  "If there is an error (e.g., email already exists), we show it immediately."
-
-
-// "I used CSS Flexbox to center the forms vertically and horizontally. I added smooth animations for better user experience. I also used Poppins font and soft gradients to make the app feel professional."

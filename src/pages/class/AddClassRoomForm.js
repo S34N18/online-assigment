@@ -1,79 +1,83 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import '../styles/AddClassRoomForm.css';
+import React, { useState } from "react";
+import axios from "axios";
 
-const AddClassroomForm = ({ onClassroomAdded }) => {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [code, setCode] = useState(''); // Add code state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+const AddClassRoomForm = ({ onClassroomAdded }) => {
+  const [formData, setFormData] = useState({
+    name: "",
+    code: "",
+    description: "",
+  });
+  const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccess('');
+    setError("");
+
+    const token = localStorage.getItem("token"); // Make sure this is how you're storing your JWT
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        '/api/classrooms',
-        { name, description, code }, // Include code in the request body
-        { headers: { Authorization: `Bearer ${token}` } }
+      await axios.post(
+        "http://localhost:5000/api/classrooms",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-
-      setName('');
-      setDescription('');
-      setCode(''); // Reset code
-      setSuccess('Classroom added successfully!');
-      onClassroomAdded(response.data); // notify parent to refresh
-
-      // Clear the success message after a delay
-      setTimeout(() => setSuccess(''), 3000);
+      onClassroomAdded(); // Refresh parent list
+      setFormData({ name: "", code: "", description: "" });
     } catch (err) {
       console.error(err);
-      setError('Failed to add classroom');
-    } finally {
-      setLoading(false);
+      setError("Failed to create classroom. Please try again.");
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="add-classroom-form">
-      <h3>Add New Classroom</h3>
-
+    <form
+      onSubmit={handleSubmit}
+      className="max-w-md mx-auto my-4 flex flex-col gap-2 p-4 bg-white shadow-md rounded"
+    >
       <input
         type="text"
+        name="name"
         placeholder="Classroom Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        value={formData.name}
+        onChange={handleChange}
+        className="p-2 rounded border border-gray-300"
         required
       />
-
       <input
         type="text"
+        name="code"
         placeholder="Classroom Code"
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
+        value={formData.code}
+        onChange={handleChange}
+        className="p-2 rounded border border-gray-300"
         required
       />
-
       <textarea
-        placeholder="Description (optional)"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        name="description"
+        placeholder="Description"
+        value={formData.description}
+        onChange={handleChange}
+        className="p-2 rounded border border-gray-300"
+        rows={3}
+        required
       />
-
-      {error && <p className="error">{error}</p>}
-      {success && <p className="success">{success}</p>}
-
-      <button type="submit" disabled={loading}>
-        {loading ? 'Adding...' : 'Add Classroom'}
+      {error && <p className="text-red-600 text-sm">{error}</p>}
+      <button
+        type="submit"
+        className="p-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded"
+      >
+        Add Classroom
       </button>
     </form>
   );
 };
 
-export default AddClassroomForm;
+export default AddClassRoomForm;

@@ -1,4 +1,3 @@
-// Updated App.js with general submissions route
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import PrivateRoute from "./components/PrivateRoute";
@@ -15,8 +14,13 @@ import ManageStudentWrapper from "./pages/class/ManageStudentWrapper.js";
 import ClassroomList from "./pages/class/ClassroomList.js";
 import ClassroomDetails from "./pages/class/ClasssroomDetails.js";
 import AssignmentDetails from "./pages/Assignment/AssignmentDetails.js";
+import ClassroomStudentManager from "./pages/class/ClassroomStudentManager.js";
 
-
+// Student-specific components
+import MyClasses from "./pages/students/MyClasses.js";
+import Grades from "./pages/students/Grades.js";
+import Calendar from "./pages/students/Calendar.js";
+import Profile from "./pages/students/Profile.js";
 
 
 function App() {
@@ -39,12 +43,56 @@ function App() {
           }
         />
 
+        {/* Student-specific Routes */}
+        <Route
+          path="/my-classes"
+          element={
+            <PrivateRoute>
+              <ProtectedLayout>
+                <MyClasses />
+              </ProtectedLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/grades"
+          element={
+            <PrivateRoute>
+              <ProtectedLayout>
+                <Grades />
+              </ProtectedLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/calendar"
+          element={
+            <PrivateRoute>
+              <ProtectedLayout>
+                <Calendar />
+              </ProtectedLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <ProtectedLayout>
+                <Profile />
+              </ProtectedLayout>
+            </PrivateRoute>
+          }
+        />
+
         {/* Classroom Routes */}
         <Route
           path="/classrooms"
           element={
             <PrivateRoute>
-              <ClassroomList />
+              <ProtectedLayout>
+                <ClassroomList />
+              </ProtectedLayout>
             </PrivateRoute>
           }
         />
@@ -52,7 +100,9 @@ function App() {
           path="/classrooms/:id"
           element={
             <PrivateRoute>
-              <ClassroomDetails />
+              <ProtectedLayout>
+                <ClassroomDetails />
+              </ProtectedLayout>
             </PrivateRoute>
           }
         />
@@ -60,7 +110,9 @@ function App() {
           path="/classrooms/:id/manage"
           element={
             <PrivateRoute>
-              <ManageStudentWrapper />
+              <ProtectedLayout>
+                <ManageStudentWrapper />
+              </ProtectedLayout>
             </PrivateRoute>
           }
         />
@@ -70,7 +122,9 @@ function App() {
           path="/classrooms/:classroomId/assignments/create"
           element={
             <PrivateRoute>
-              <AssignmentCreate />
+              <ProtectedLayout>
+                <AssignmentCreate />
+              </ProtectedLayout>
             </PrivateRoute>
           }
         />
@@ -78,30 +132,31 @@ function App() {
           path="/assignments"
           element={
             <PrivateRoute>
-              <AssignmentList />
+              <ProtectedLayout>
+                <AssignmentList />
+              </ProtectedLayout>
             </PrivateRoute>
           }
         />
 
-       <Route 
-       path="/assignments/:assignmentId"
-        element={
-          <PrivateRoute>
-            <AssignmentDetails />
-          </PrivateRoute>
-        }
-      />
-
-
-
-
-
+        <Route 
+          path="/assignments/:assignmentId"
+          element={
+            <PrivateRoute>
+              <ProtectedLayout>
+                <AssignmentDetails />
+              </ProtectedLayout>
+            </PrivateRoute>
+          }
+        />
 
         <Route
           path="/assignments/:id/submit"
           element={
             <PrivateRoute>
-              <AssignmentSubmit />
+              <ProtectedLayout>
+                <AssignmentSubmit />
+              </ProtectedLayout>
             </PrivateRoute>
           }
         />
@@ -111,23 +166,36 @@ function App() {
           path="/assignments/:assignmentId/submissions"
           element={
             <PrivateRoute>
-              <SubmissionList />
+              <ProtectedLayout>
+                <SubmissionList />
+              </ProtectedLayout>
             </PrivateRoute>
           }
         />
         
-        {/* Add this general submissions route */}
+        {/* General submissions route */}
         <Route
           path="/submissions"
           element={
             <PrivateRoute>
-              <SubmissionList />
+              <ProtectedLayout>
+                <SubmissionList />
+              </ProtectedLayout>
             </PrivateRoute>
           }
         />
 
         {/* User Management */}
-        <Route path="/users" element={<Users />} />
+        <Route 
+          path="/users" 
+          element={
+            <PrivateRoute>
+              <ProtectedLayout>
+                <Users />
+              </ProtectedLayout>
+            </PrivateRoute>
+          } 
+        />
         
         {/* 404 Route */}
         <Route path="*" element={<h1>404 - Page Not Found</h1>} />

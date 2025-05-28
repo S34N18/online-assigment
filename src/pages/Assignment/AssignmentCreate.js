@@ -51,49 +51,67 @@ const AssignmentCreate = () => {
   // ✅ Handle file selection
   const handleFileChange = (e) => {
     setFile(e.target.files[0]); // Store only the first file selected
+    console.log('File selected:', e.target.files[0]); // Debug: Log file info
   };
 
-// ✅ Handle form submission
-const handleSubmit = async (e) => {
-  e.preventDefault(); // Prevent page reload on form submit
+  // ✅ Handle form submission with enhanced debugging
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent page reload on form submit
 
-  // Prepare data to send
-  const formData = new FormData();
-  formData.append('title', form.title);
-  formData.append('description', form.description);
-  formData.append('deadline', form.deadline); // Backend will map this to dueDate
-  formData.append('classroomId', classroomId); // Classroom association
-  if (file) formData.append('file', file); // Now matches the upload configuration
-
-  try {
-    // Send POST request to backend to create assignment
-    const response = await axios.post('/api/assignments', formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,  // Send token for authentication
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-
-    console.log('Assignment created:', response.data);
-
-    // Clear the form after success
-    setForm({ title: '', description: '', deadline: '' });
-    setFile(null);
-    setSuccessMsg('Assignment created successfully!');
+    // Prepare data to send
+    const formData = new FormData();
+    formData.append('title', form.title);
+    formData.append('description', form.description);
+    formData.append('deadline', form.deadline); // Backend will map this to dueDate
+    formData.append('classroomId', classroomId); // Classroom association
     
-    // Navigate back to classroom details after 2 seconds
-    setTimeout(() => {
-      navigate(`/classrooms/${classroomId}`);
-    }, 2000);
-  } catch (err) {
-    console.error('Error creating assignment:', err.response?.data || err.message);
-    alert('Failed to create assignment: ' + (err.response?.data?.message || err.message));
-  }
-};
+    // Log formData contents before appending file
+    console.log('FormData before file:', {
+      title: form.title,
+      description: form.description,
+      deadline: form.deadline,
+      classroomId: classroomId
+    });
+    
+    if (file) {
+      formData.append('file', file);
+      console.log('File appended to FormData:', file.name, file.size, file.type);
+    } else {
+      console.log('No file selected for upload');
+    }
 
+    try {
+      console.log('Sending request to create assignment...');
+      
+      // Send POST request to backend to create assignment
+      const response = await axios.post('/api/assignments', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,  // Send token for authentication
+          'Content-Type': 'multipart/form-data'
+        }
+      });
 
+      console.log('Assignment created successfully:', response.data);
 
-
+      // Clear the form after success
+      setForm({ title: '', description: '', deadline: '' });
+      setFile(null);
+      setSuccessMsg('Assignment created successfully!');
+      
+      // Navigate back to classroom details after 2 seconds
+      setTimeout(() => {
+        navigate(`/classrooms/${classroomId}`);
+      }, 2000);
+    } catch (err) {
+      console.error('Error creating assignment:', err);
+      if (err.response) {
+        console.error('Error response data:', err.response.data);
+        console.error('Error response status:', err.response.status);
+        console.error('Error response headers:', err.response.headers);
+      }
+      alert('Failed to create assignment: ' + (err.response?.data?.message || err.message));
+    }
+  };
 
   return (
     <div className="create-assignment-page">
@@ -137,8 +155,16 @@ const handleSubmit = async (e) => {
           required
         />
 
-        {/* File Upload */}
-        <input type="file" onChange={handleFileChange} />
+        {/* File Upload with debug info */}
+        <div className="file-upload-section">
+          <label>Assignment File (Optional):</label>
+          <input type="file" onChange={handleFileChange} />
+          {file && (
+            <div className="file-preview">
+              <p>Selected file: {file.name} ({(file.size/1024).toFixed(2)} KB)</p>
+            </div>
+          )}
+        </div>
 
         {/* Submit Button */}
         <button type="submit">Publish Assignment</button>

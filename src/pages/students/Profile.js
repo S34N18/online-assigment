@@ -180,12 +180,7 @@ const Profile = () => {
         >
           Profile Information
         </button>
-        <button 
-          className={activeTab === 'password' ? 'active' : ''}
-          onClick={() => setActiveTab('password')}
-        >
-          Change Password
-        </button>
+   
         <button 
           className={activeTab === 'stats' ? 'active' : ''}
           onClick={() => setActiveTab('stats')}
@@ -297,63 +292,7 @@ const Profile = () => {
         </div>
       )}
 
-      {/* Password Tab */}
-      {activeTab === 'password' && (
-        <div className="tab-content">
-          <form onSubmit={handlePasswordSubmit} className="password-form">
-            <div className="form-section">
-              <h3>Change Password</h3>
-              
-              <div className="form-group">
-                <label htmlFor="currentPassword">Current Password</label>
-                <input
-                  type="password"
-                  id="currentPassword"
-                  name="currentPassword"
-                  value={passwords.currentPassword}
-                  onChange={handlePasswordChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="newPassword">New Password</label>
-                <input
-                  type="password"
-                  id="newPassword"
-                  name="newPassword"
-                  value={passwords.newPassword}
-                  onChange={handlePasswordChange}
-                  required
-                  minLength="6"
-                />
-                <small>Password must be at least 6 characters long</small>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm New Password</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={passwords.confirmPassword}
-                  onChange={handlePasswordChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              className="btn btn-primary"
-              disabled={loading}
-            >
-              {loading ? 'Updating...' : 'Update Password'}
-            </button>
-          </form>
-        </div>
-      )}
-
+     
       {/* Stats Tab */}
       {activeTab === 'stats' && (
         <div className="tab-content">

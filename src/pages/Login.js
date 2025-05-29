@@ -3,11 +3,13 @@ import axios from 'axios';
 import './styles/Login.css'; 
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import ForgotPassword from './Forgotpassword.js';
+import ResetPassword from './Resetpassword.js';
 
 // Login Page Component
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { login, isAuthenticated, user, token } = useContext(AuthContext);
 
   // State hooks for form inputs and messages
   const [email, setEmail] = useState('');
@@ -16,13 +18,9 @@ const Login = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Forgot password states
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [resetCode, setResetCode] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [forgotPasswordStep, setForgotPasswordStep] = useState(1); // 1: email, 2: code + new password
+  // View state management
+  const [currentView, setCurrentView] = useState('login'); // 'login', 'forgot', 'reset'
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
 
   // Clear messages when switching between forms
   const clearMessages = () => {
@@ -36,14 +34,6 @@ const Login = () => {
     setIsLoading(true);
     clearMessages();
 
-    // Debug logging to identify the issue
-    console.log('=== FRONTEND LOGIN DEBUG ===');
-    console.log('Email state:', email);
-    console.log('Password state:', password);
-    console.log('Password length:', password?.length);
-    console.log('Password type:', typeof password);
-    console.log('Form data being sent:', { email, password });
-
     // Validate form data before sending
     if (!email || !password) {
       setErrorMsg('Please provide both email and password');
@@ -53,11 +43,11 @@ const Login = () => {
 
     try {
       const requestData = {
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password: password
       };
 
-      console.log('Request data:', requestData);
+      console.log('Attempting login for:', requestData.email);
 
       const res = await axios.post('http://localhost:5000/api/auth/login', requestData, {
         headers: {
@@ -65,279 +55,214 @@ const Login = () => {
         }
       });
 
-      console.log('Login response:', res.data);
+      console.log('Full login response:', res.data);
 
-      // Your backend returns { success, message, token, data } 
-      const { token, data: user } = res.data;
+      // Handle different possible response formats from your backend
+      let userData = null;
+      let authToken = null;
+
+      // Check different possible response structures
+      if (res.data.token && res.data.data) {
+        // Format: { token, data: userData }
+        authToken = res.data.token;
+        userData = res.data.data;
+      } else if (res.data.token && res.data.user) {
+        // Format: { token, user: userData }
+        authToken = res.data.token;
+        userData = res.data.user;
+      } else if (res.data.access_token && res.data.user) {
+        // Format: { access_token, user: userData }
+        authToken = res.data.access_token;
+        userData = res.data.user;
+      } else if (res.data.token && (res.data.name || res.data.email)) {
+        // Format: { token, name, email, role, ... } (user data is at root level)
+        authToken = res.data.token;
+        userData = {
+          name: res.data.name,
+          email: res.data.email,
+          role: res.data.role,
+          id: res.data.id || res.data._id,
+          // Add any other fields your backend returns
+        };
+      } else {
+        // Try to extract from whatever structure we got
+        authToken = res.data.token || res.data.access_token || res.data.jwt;
+        userData = res.data.user || res.data.data || res.data;
+      }
+
+      console.log('Extracted token:', authToken);
+      console.log('Extracted user data:', userData);
+
+      // Validate that we have both token and user data
+      if (!authToken) {
+        throw new Error('No authentication token received from server');
+      }
+
+      if (!userData || (!userData.name && !userData.email)) {
+        throw new Error('No valid user data received from server');
+      }
+
+      // Ensure user data has required fields
+      if (!userData.name) userData.name = userData.email?.split('@')[0] || 'User';
+      if (!userData.role) userData.role = 'student'; // default role
 
       // Update context with logged in user
-      login(user, token);
+      login(userData, authToken);
 
-      setSuccessMsg('Login successful! Redirecting...');
-      
-      // Navigate to dashboard after successful login
+      // Verify that login worked by checking context immediately
       setTimeout(() => {
-        navigate('/dashboard');
-      }, 1000);
+        const storedUser = localStorage.getItem('user');
+        const storedToken = localStorage.getItem('token');
+        
+        console.log('Verification - Stored user:', storedUser);
+        console.log('Verification - Stored token:', storedToken);
+        
+        if (storedUser && storedToken) {
+          setSuccessMsg('Login successful! Redirecting...');
+          setTimeout(() => {
+            console.log('Attempting to navigate to dashboard...');
+            navigate('/dashboard');
+          }, 500);
+        } else {
+          setErrorMsg('Login failed - data not saved properly');
+        }
+      }, 100);
 
     } catch (error) {
       console.error('Login error:', error);
       console.error('Error response:', error.response?.data);
-      setErrorMsg(error.response?.data?.error || error.response?.data?.message || 'Login failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle Forgot Password - Step 1: Send Reset Code
-  const handleForgotPasswordEmail = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    clearMessages();
-
-    if (!forgotEmail) {
-      setErrorMsg('Please enter your email address');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      await axios.post('http://localhost:5000/api/auth/forgot-password', {
-        email: forgotEmail.trim()
-      });
-
-      setSuccessMsg('Password reset code sent to your email!');
-      setForgotPasswordStep(2);
-    } catch (error) {
-      setErrorMsg(error.response?.data?.error || error.response?.data?.message || 'Failed to send reset code');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle Forgot Password - Step 2: Reset Password with Code
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    clearMessages();
-
-    // Validate form data
-    if (!resetCode || !newPassword || !confirmPassword) {
-      setErrorMsg('Please fill in all fields');
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate passwords match
-    if (newPassword !== confirmPassword) {
-      setErrorMsg('Passwords do not match');
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate password length
-    if (newPassword.length < 6) {
-      setErrorMsg('Password must be at least 6 characters');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      await axios.post('http://localhost:5000/api/auth/reset-password', {
-        email: forgotEmail.trim(),
-        passwordResetCode: resetCode,
-        newPassword: newPassword
-      });
-
-      setSuccessMsg('Password reset successful! You can now login with your new password.');
       
-      // Reset form and go back to login
-      setTimeout(() => {
-        setShowForgotPassword(false);
-        setForgotPasswordStep(1);
-        setForgotEmail('');
-        setResetCode('');
-        setNewPassword('');
-        setConfirmPassword('');
-        clearMessages();
-      }, 2000);
-    } catch (error) {
-      setErrorMsg(error.response?.data?.error || error.response?.data?.message || 'Failed to reset password');
+      setErrorMsg(
+        error.response?.data?.error || 
+        error.response?.data?.message || 
+        error.message ||
+        'Login failed. Please check your credentials.'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Reset forgot password form
-  const resetForgotPasswordForm = () => {
-    setShowForgotPassword(false);
-    setForgotPasswordStep(1);
-    setForgotEmail('');
-    setResetCode('');
-    setNewPassword('');
-    setConfirmPassword('');
+  // Navigation handlers
+  const handleShowForgotPassword = () => {
     clearMessages();
+    setCurrentView('forgot');
+  };
+
+  const handleBackToLogin = () => {
+    clearMessages();
+    setCurrentView('login');
+    setForgotPasswordEmail('');
+  };
+
+  const handleMoveToReset = (email) => {
+    setForgotPasswordEmail(email);
+    setCurrentView('reset');
+  };
+
+  const handleBackToForgot = () => {
+    clearMessages();
+    setCurrentView('forgot');
+  };
+
+  const handleResetSuccess = () => {
+    setCurrentView('login');
+    setForgotPasswordEmail('');
+    setSuccessMsg('Password reset successful! You can now login with your new password.');
+  };
+
+  // Render based on current view
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'forgot':
+        return (
+          <ForgotPassword
+            onBackToLogin={handleBackToLogin}
+            onMoveToReset={handleMoveToReset}
+          />
+        );
+      
+      case 'reset':
+        return (
+          <ResetPassword
+            email={forgotPasswordEmail}
+            onBackToForgot={handleBackToForgot}
+            onBackToLogin={handleBackToLogin}
+            onResetSuccess={handleResetSuccess}
+          />
+        );
+      
+      default:
+        return (
+          <div className="login-container">
+           
+            <form onSubmit={handleSubmit} className="login-form">
+              <h2>Login</h2>
+
+              {/* Display messages */}
+              {errorMsg && <div className="error-message">{errorMsg}</div>}
+              {successMsg && <div className="success-message">{successMsg}</div>}
+
+              {/* Email Input Field */}
+              <div className="input-group">
+                <label htmlFor="login-email">Email</label>
+                <input
+                  id="login-email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="email-input"
+                />
+              </div>
+
+              {/* Password Input Field */}
+              <div className="input-group">
+                <label htmlFor="login-password">Password</label>
+                <input
+                  id="login-password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="password-input"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button 
+                type="submit" 
+                disabled={isLoading}
+                className="primary-button"
+              >
+                {isLoading ? 'Logging in...' : 'Login'}
+              </button>
+
+
+              {/* Forgot Password Link */}
+              <div className="forgot-password-link">
+                <button
+                  type="button"
+                  onClick={handleShowForgotPassword}
+                  className="link-button"
+                  disabled={isLoading}
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            </form>
+          </div>
+        );
+    }
   };
 
   return (
     <div className="login-page">
-      {!showForgotPassword ? (
-        // Main Login Form
-        <form onSubmit={handleSubmit} className="login-form">
-          <h2>Login</h2>
-
-          {/* Display messages */}
-          {errorMsg && <p className="error">{errorMsg}</p>}
-          {successMsg && <p className="success">{successMsg}</p>}
-
-          {/* Email Input Field */}
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => {
-              console.log('Email input changed:', e.target.value);
-              setEmail(e.target.value);
-            }}
-            required
-            disabled={isLoading}
-          />
-
-          {/* Password Input Field */}
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => {
-              console.log('Password input changed:', e.target.value);
-              setPassword(e.target.value);
-            }}
-            required
-            disabled={isLoading}
-          />
-
-          {/* Submit Button */}
-          <button type="submit" disabled={isLoading}>
-            {isLoading ? 'Logging in...' : 'Login'}
-          </button>
-
-          {/* Forgot Password Link */}
-          <p className="forgot-password-link">
-            <button
-              type="button"
-              onClick={() => setShowForgotPassword(true)}
-              className="link-button"
-              disabled={isLoading}
-            >
-              Forgot Password?
-            </button>
-          </p>
-        </form>
-      ) : (
-        // Forgot Password Form
-        <div className="forgot-password-form">
-          {forgotPasswordStep === 1 ? (
-            // Step 1: Enter Email
-            <form onSubmit={handleForgotPasswordEmail}>
-              <h2>Forgot Password</h2>
-              <p>Enter your email address to receive a password reset code.</p>
-
-              {/* Display messages */}
-              {errorMsg && <p className="error">{errorMsg}</p>}
-              {successMsg && <p className="success">{successMsg}</p>}
-
-              {/* Email Input */}
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-
-              {/* Buttons */}
-              <button type="submit" disabled={isLoading}>
-                {isLoading ? 'Sending...' : 'Send Reset Code'}
-              </button>
-              
-              <button
-                type="button"
-                onClick={resetForgotPasswordForm}
-                className="secondary-button"
-                disabled={isLoading}
-              >
-                Back to Login
-              </button>
-            </form>
-          ) : (
-            // Step 2: Enter Reset Code and New Password
-            <form onSubmit={handleResetPassword}>
-              <h2>Reset Password</h2>
-              <p>Enter the reset code sent to your email and your new password.</p>
-
-              {/* Display messages */}
-              {errorMsg && <p className="error">{errorMsg}</p>}
-              {successMsg && <p className="success">{successMsg}</p>}
-
-              {/* Reset Code Input */}
-              <input
-                type="text"
-                placeholder="Enter reset code"
-                value={resetCode}
-                onChange={(e) => setResetCode(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-
-              {/* New Password Input */}
-              <input
-                type="password"
-                placeholder="New password (min 6 characters)"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                minLength={6}
-                disabled={isLoading}
-              />
-
-              {/* Confirm Password Input */}
-              <input
-                type="password"
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                minLength={6}
-                disabled={isLoading}
-              />
-
-              {/* Buttons */}
-              <button type="submit" disabled={isLoading}>
-                {isLoading ? 'Resetting...' : 'Reset Password'}
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setForgotPasswordStep(1)}
-                className="secondary-button"
-                disabled={isLoading}
-              >
-                Back
-              </button>
-              
-              <button
-                type="button"
-                onClick={resetForgotPasswordForm}
-                className="link-button"
-                disabled={isLoading}
-              >
-                Cancel
-              </button>
-            </form>
-          )}
-        </div>
-      )}
+      {renderCurrentView()}
     </div>
   );
 };

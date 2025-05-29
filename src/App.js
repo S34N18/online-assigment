@@ -19,9 +19,9 @@ import ClassroomStudentManager from "./pages/class/ClassroomStudentManager.js";
 // Student-specific components
 import MyClasses from "./pages/students/MyClasses.js";
 import Grades from "./pages/students/Grades.js";
+import GradingPage from "./pages/students/GradingPage.js";
 import Calendar from "./pages/students/Calendar.js";
 import Profile from "./pages/students/Profile.js";
-
 
 function App() {
   return (
@@ -54,6 +54,8 @@ function App() {
             </PrivateRoute>
           }
         />
+        
+        {/* Grades Routes */}
         <Route
           path="/grades"
           element={
@@ -64,6 +66,31 @@ function App() {
             </PrivateRoute>
           }
         />
+        
+        {/* Lecturer viewing specific student grades */}
+        <Route
+          path="/grades/student/:studentId"
+          element={
+            <PrivateRoute requiredRole="lecturer">
+              <ProtectedLayout>
+                <Grades />
+              </ProtectedLayout>
+            </PrivateRoute>
+          }
+        />
+        
+        {/* Grading Page - Lecturer Only */}
+        <Route
+          path="/grading"
+          element={
+            <PrivateRoute requiredRole="lecturer">
+              <ProtectedLayout>
+                <GradingPage />
+              </ProtectedLayout>
+            </PrivateRoute>
+          }
+        />
+        
         <Route
           path="/calendar"
           element={

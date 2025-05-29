@@ -42,13 +42,7 @@ const Sidebar = ({ closeSidebar }) => {
       {/* Student-specific routes */}
       {user?.role === 'student' && (
         <>
-          <NavLink 
-            to="/my-classes" 
-            className={({ isActive }) => isActive ? "active" : ""}
-            onClick={handleNavClick}
-          >
-            My Classes
-          </NavLink>
+       
           <NavLink 
             to="/submissions" 
             className={({ isActive }) => isActive ? "active" : ""}
@@ -103,6 +97,20 @@ const Sidebar = ({ closeSidebar }) => {
             onClick={handleNavClick}
           >
             Classrooms
+          </NavLink>
+          <NavLink 
+            to="/grading" 
+            className={({ isActive }) => isActive ? "active" : ""}
+            onClick={handleNavClick}
+          >
+            Grade Submissions
+          </NavLink>
+          <NavLink 
+            to="/profile" 
+            className={({ isActive }) => isActive ? "active" : ""}
+            onClick={handleNavClick}
+          >
+            Profile
           </NavLink>
         </>
       )}
